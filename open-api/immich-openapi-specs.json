@@ -6760,6 +6760,608 @@
         "x-immich-state": "Stable"
       }
     },
+    "/download/requests": {
+      "get": {
+        "description": "List the download requests of the current user or shared link visitor.",
+        "operationId": "getDownloadRequests",
+        "parameters": [
+          {
+            "name": "downloadToken",
+            "required": false,
+            "in": "query",
+            "description": "Client token identifying anonymous shared link visitors",
+            "schema": {
+              "minLength": 16,
+              "maxLength": 128,
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DownloadRequestDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List download requests",
+        "tags": [
+          "Download"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v3.3.0",
+            "state": "Added"
+          },
+          {
+            "version": "v3.3.0",
+            "state": "Alpha"
+          }
+        ],
+        "x-immich-permission": "asset.download",
+        "x-immich-state": "Alpha"
+      },
+      "post": {
+        "description": "Prepare a download of converted variants. When nothing needs to be converted, the response says so and the regular download endpoints should be used.",
+        "operationId": "createDownloadRequest",
+        "parameters": [
+          {
+            "name": "downloadToken",
+            "required": false,
+            "in": "query",
+            "description": "Client token identifying anonymous shared link visitors",
+            "schema": {
+              "minLength": 16,
+              "maxLength": 128,
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadRequestCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadRequestCreateResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Create a download request",
+        "tags": [
+          "Download"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v3.3.0",
+            "state": "Added"
+          },
+          {
+            "version": "v3.3.0",
+            "state": "Alpha"
+          }
+        ],
+        "x-immich-permission": "asset.download",
+        "x-immich-state": "Alpha"
+      }
+    },
+    "/download/requests/{id}": {
+      "delete": {
+        "description": "Cancel a download request that is being prepared, or remove one that is ready.",
+        "operationId": "deleteDownloadRequest",
+        "parameters": [
+          {
+            "name": "downloadToken",
+            "required": false,
+            "in": "query",
+            "description": "Client token identifying anonymous shared link visitors",
+            "schema": {
+              "minLength": 16,
+              "maxLength": 128,
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a download request",
+        "tags": [
+          "Download"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v3.3.0",
+            "state": "Added"
+          },
+          {
+            "version": "v3.3.0",
+            "state": "Alpha"
+          }
+        ],
+        "x-immich-permission": "asset.download",
+        "x-immich-state": "Alpha"
+      },
+      "get": {
+        "description": "Retrieve the status of a download request.",
+        "operationId": "getDownloadRequest",
+        "parameters": [
+          {
+            "name": "downloadToken",
+            "required": false,
+            "in": "query",
+            "description": "Client token identifying anonymous shared link visitors",
+            "schema": {
+              "minLength": 16,
+              "maxLength": 128,
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadRequestDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Retrieve a download request",
+        "tags": [
+          "Download"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v3.3.0",
+            "state": "Added"
+          },
+          {
+            "version": "v3.3.0",
+            "state": "Alpha"
+          }
+        ],
+        "x-immich-permission": "asset.download",
+        "x-immich-state": "Alpha"
+      }
+    },
+    "/download/requests/{id}/archive": {
+      "post": {
+        "description": "Download a ZIP archive of a prepared download request.",
+        "operationId": "downloadRequestArchive",
+        "parameters": [
+          {
+            "name": "downloadToken",
+            "required": false,
+            "in": "query",
+            "description": "Client token identifying anonymous shared link visitors",
+            "schema": {
+              "minLength": 16,
+              "maxLength": 128,
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadRequestArchiveDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Download a download request archive",
+        "tags": [
+          "Download"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v3.3.0",
+            "state": "Added"
+          },
+          {
+            "version": "v3.3.0",
+            "state": "Alpha"
+          }
+        ],
+        "x-immich-permission": "asset.download",
+        "x-immich-state": "Alpha"
+      }
+    },
+    "/download/requests/{id}/assets/{assetId}": {
+      "get": {
+        "description": "Download the prepared file of a single asset of a download request.",
+        "operationId": "downloadRequestFile",
+        "parameters": [
+          {
+            "name": "assetId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "downloadToken",
+            "required": false,
+            "in": "query",
+            "description": "Client token identifying anonymous shared link visitors",
+            "schema": {
+              "minLength": 16,
+              "maxLength": 128,
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Download a file of a download request",
+        "tags": [
+          "Download"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v3.3.0",
+            "state": "Added"
+          },
+          {
+            "version": "v3.3.0",
+            "state": "Alpha"
+          }
+        ],
+        "x-immich-permission": "asset.download",
+        "x-immich-state": "Alpha"
+      }
+    },
+    "/download/requests/{id}/info": {
+      "post": {
+        "description": "Split a prepared download request into archives of the given size.",
+        "operationId": "getDownloadRequestInfo",
+        "parameters": [
+          {
+            "name": "downloadToken",
+            "required": false,
+            "in": "query",
+            "description": "Client token identifying anonymous shared link visitors",
+            "schema": {
+              "minLength": 16,
+              "maxLength": 128,
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadRequestInfoDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Retrieve download request archive information",
+        "tags": [
+          "Download"
+        ],
+        "x-immich-history": [
+          {
+            "version": "v3.3.0",
+            "state": "Added"
+          },
+          {
+            "version": "v3.3.0",
+            "state": "Alpha"
+          }
+        ],
+        "x-immich-permission": "asset.download",
+        "x-immich-state": "Alpha"
+      }
+    },
     "/duplicates": {
       "delete": {
         "description": "Delete multiple duplicate assets specified by their IDs.",
@@ -18565,11 +19167,73 @@
         ],
         "type": "object"
       },
+      "AdminConfigDownloadVariantsDto": {
+        "properties": {
+          "cacheDays": {
+            "description": "Days to keep converted files and download requests",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "cacheSizeGb": {
+            "description": "Maximum size of the download cache in GiB",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "enabled": {
+            "description": "Allow downloading converted variants",
+            "type": "boolean"
+          },
+          "imageQuality": {
+            "description": "Quality of converted images",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxActiveRequests": {
+            "description": "Maximum number of active requests per user or shared link visitor",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxAssetsPerRequest": {
+            "description": "Maximum number of files per download request",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxVideosPerRequest": {
+            "description": "Maximum number of videos to convert per download request",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sharedLinks": {
+            "description": "Allow shared link visitors to request converted variants",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cacheDays",
+          "cacheSizeGb",
+          "enabled",
+          "imageQuality",
+          "maxActiveRequests",
+          "maxAssetsPerRequest",
+          "maxVideosPerRequest",
+          "sharedLinks"
+        ],
+        "type": "object"
+      },
       "AdminConfigDto": {
         "description": "Configuration properties that are visible to the admin",
         "properties": {
           "backup": {
             "$ref": "#/components/schemas/AdminConfigBackupsDto"
+          },
+          "downloadVariants": {
+            "$ref": "#/components/schemas/AdminConfigDownloadVariantsDto"
           },
           "ffmpeg": {
             "$ref": "#/components/schemas/AdminConfigFFmpegDto"
@@ -18637,6 +19301,7 @@
         },
         "required": [
           "backup",
+          "downloadVariants",
           "ffmpeg",
           "image",
           "integrityChecks",
@@ -19050,6 +19715,9 @@
           "backgroundTask": {
             "$ref": "#/components/schemas/AdminConfigJobSettingsDto"
           },
+          "downloadVariant": {
+            "$ref": "#/components/schemas/AdminConfigJobSettingsDto"
+          },
           "editor": {
             "$ref": "#/components/schemas/AdminConfigJobSettingsDto"
           },
@@ -19095,6 +19763,7 @@
         },
         "required": [
           "backgroundTask",
+          "downloadVariant",
           "editor",
           "faceDetection",
           "integrityCheck",
@@ -22141,6 +22810,25 @@
         ],
         "type": "object"
       },
+      "DownloadImageFormat": {
+        "description": "Image format",
+        "enum": [
+          "original",
+          "jpeg",
+          "webp"
+        ],
+        "type": "string"
+      },
+      "DownloadImageSize": {
+        "description": "Maximum long edge of images",
+        "enum": [
+          "original",
+          "3840",
+          "2560",
+          "1920"
+        ],
+        "type": "string"
+      },
       "DownloadInfoDto": {
         "properties": {
           "albumId": {
@@ -22172,6 +22860,176 @@
           }
         },
         "type": "object"
+      },
+      "DownloadRequestArchiveDto": {
+        "properties": {
+          "archiveName": {
+            "description": "The name of the archive to download, without extension",
+            "type": "string"
+          },
+          "assetIds": {
+            "description": "Subset of asset IDs to include, defaults to all",
+            "items": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DownloadRequestCreateDto": {
+        "properties": {
+          "albumId": {
+            "description": "Album ID to download",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+            "type": "string"
+          },
+          "assetIds": {
+            "description": "Asset IDs to download",
+            "items": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "Name of the download, used for the archive name",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "single": {
+            "description": "Download the files individually instead of as an archive",
+            "type": "boolean"
+          },
+          "userId": {
+            "description": "User ID to download assets from",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+            "type": "string"
+          },
+          "variant": {
+            "$ref": "#/components/schemas/DownloadVariantDto"
+          }
+        },
+        "required": [
+          "variant"
+        ],
+        "type": "object"
+      },
+      "DownloadRequestCreateResponseDto": {
+        "properties": {
+          "immediate": {
+            "description": "Nothing needs to be generated, use the regular download endpoints",
+            "type": "boolean"
+          },
+          "request": {
+            "$ref": "#/components/schemas/DownloadRequestDto"
+          }
+        },
+        "required": [
+          "immediate"
+        ],
+        "type": "object"
+      },
+      "DownloadRequestDto": {
+        "properties": {
+          "createdAt": {
+            "description": "Creation date",
+            "example": "2024-01-01T00:00:00.000Z",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "type": "string"
+          },
+          "expiresAt": {
+            "description": "Expiration date",
+            "example": "2024-01-01T00:00:00.000Z",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "type": "string"
+          },
+          "failed": {
+            "description": "Number of files that could not be converted",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "id": {
+            "description": "Download request ID",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$",
+            "type": "string"
+          },
+          "name": {
+            "description": "Name of the download",
+            "type": "string"
+          },
+          "ready": {
+            "description": "Number of files ready to download",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "single": {
+            "description": "Download the files individually instead of as an archive",
+            "type": "boolean"
+          },
+          "size": {
+            "description": "Total size of the files that are ready, in bytes",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DownloadRequestStatus"
+          },
+          "total": {
+            "description": "Number of files",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "variant": {
+            "$ref": "#/components/schemas/DownloadVariantDto"
+          }
+        },
+        "required": [
+          "createdAt",
+          "expiresAt",
+          "failed",
+          "id",
+          "name",
+          "ready",
+          "single",
+          "size",
+          "status",
+          "total",
+          "variant"
+        ],
+        "type": "object"
+      },
+      "DownloadRequestInfoDto": {
+        "properties": {
+          "archiveSize": {
+            "description": "Archive size limit in bytes",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "DownloadRequestStatus": {
+        "description": "Status",
+        "enum": [
+          "preparing",
+          "ready",
+          "failed"
+        ],
+        "type": "string"
       },
       "DownloadResponse": {
         "properties": {
@@ -22228,6 +23086,52 @@
           }
         },
         "type": "object"
+      },
+      "DownloadVariantDto": {
+        "properties": {
+          "imageFormat": {
+            "$ref": "#/components/schemas/DownloadImageFormat"
+          },
+          "imageSize": {
+            "$ref": "#/components/schemas/DownloadImageSize"
+          },
+          "keepMetadata": {
+            "description": "Copy EXIF metadata into converted files",
+            "type": "boolean"
+          },
+          "videoCodec": {
+            "$ref": "#/components/schemas/DownloadVideoCodec"
+          },
+          "videoResolution": {
+            "$ref": "#/components/schemas/DownloadVideoResolution"
+          }
+        },
+        "required": [
+          "imageFormat",
+          "imageSize",
+          "videoCodec",
+          "videoResolution"
+        ],
+        "type": "object"
+      },
+      "DownloadVideoCodec": {
+        "description": "Video codec",
+        "enum": [
+          "original",
+          "h264",
+          "hevc"
+        ],
+        "type": "string"
+      },
+      "DownloadVideoResolution": {
+        "description": "Maximum short edge of videos",
+        "enum": [
+          "original",
+          "2160",
+          "1080",
+          "720"
+        ],
+        "type": "string"
       },
       "DuplicateResolveDto": {
         "properties": {
@@ -22830,7 +23734,9 @@
           "IntegrityChecksumFiles",
           "IntegrityChecksumFilesRefresh",
           "IntegrityDeleteReportType",
-          "IntegrityDeleteReports"
+          "IntegrityDeleteReports",
+          "DownloadVariantGenerate",
+          "DownloadCacheCleanup"
         ],
         "type": "string"
       },
@@ -25936,9 +26842,29 @@
         ],
         "type": "object"
       },
+      "PublicConfigDownloadVariantsDto": {
+        "properties": {
+          "enabled": {
+            "description": "Allow downloading converted variants",
+            "type": "boolean"
+          },
+          "sharedLinks": {
+            "description": "Allow shared link visitors to request converted variants",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "sharedLinks"
+        ],
+        "type": "object"
+      },
       "PublicConfigDto": {
         "description": "Configuration properties that are visible to everyone",
         "properties": {
+          "downloadVariants": {
+            "$ref": "#/components/schemas/PublicConfigDownloadVariantsDto"
+          },
           "oauth": {
             "$ref": "#/components/schemas/PublicConfigOAuthDto"
           },
@@ -25953,6 +26879,7 @@
           }
         },
         "required": [
+          "downloadVariants",
           "oauth",
           "passwordLogin",
           "server",
@@ -26155,7 +27082,8 @@
           "ocr",
           "workflow",
           "integrityCheck",
-          "editor"
+          "editor",
+          "downloadVariant"
         ],
         "type": "string"
       },
@@ -26277,6 +27205,9 @@
           "backupDatabase": {
             "$ref": "#/components/schemas/QueueResponseLegacyDto"
           },
+          "downloadVariant": {
+            "$ref": "#/components/schemas/QueueResponseLegacyDto"
+          },
           "duplicateDetection": {
             "$ref": "#/components/schemas/QueueResponseLegacyDto"
           },
@@ -26332,6 +27263,7 @@
         "required": [
           "backgroundTask",
           "backupDatabase",
+          "downloadVariant",
           "duplicateDetection",
           "editor",
           "faceDetection",
@@ -32960,9 +33892,29 @@
         ],
         "type": "object"
       },
+      "UserConfigDownloadVariantsDto": {
+        "properties": {
+          "enabled": {
+            "description": "Allow downloading converted variants",
+            "type": "boolean"
+          },
+          "sharedLinks": {
+            "description": "Allow shared link visitors to request converted variants",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "sharedLinks"
+        ],
+        "type": "object"
+      },
       "UserConfigDto": {
         "description": "Configuration properties that are visible to a logged user",
         "properties": {
+          "downloadVariants": {
+            "$ref": "#/components/schemas/UserConfigDownloadVariantsDto"
+          },
           "ffmpeg": {
             "$ref": "#/components/schemas/UserConfigFFmpegDto"
           },
@@ -32998,6 +33950,7 @@
           }
         },
         "required": [
+          "downloadVariants",
           "ffmpeg",
           "image",
           "machineLearning",
