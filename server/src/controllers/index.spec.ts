@@ -61,6 +61,13 @@ const SHARED_LINK_ROUTES = new Set([
   'POST assets',
   'POST download/archive',
   'POST download/info',
+  'DELETE download/requests/:id',
+  'GET download/requests',
+  'GET download/requests/:id',
+  'GET download/requests/:id/assets/:assetId',
+  'POST download/requests',
+  'POST download/requests/:id/archive',
+  'POST download/requests/:id/info',
   'POST search/metadata',
   'POST shared-links/login',
 ]);

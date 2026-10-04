@@ -10,6 +10,8 @@ import {
 import { getKeysDeep } from 'src/utils/misc.js';
 
 const PUBLIC_PROPERTIES = [
+  'downloadVariants.enabled',
+  'downloadVariants.sharedLinks',
   'oauth.autoLaunch',
   'oauth.buttonText',
   'oauth.enabled',

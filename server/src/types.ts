@@ -1,5 +1,6 @@
 import { ShallowDehydrateObject } from 'kysely';
 import { Mocked } from 'vitest';
+import type { DownloadVariantJob } from 'src/utils/download-variant.js';
 import { VECTOR_EXTENSIONS } from 'src/constants.js';
 import { AssetFile } from 'src/database.js';
 import { UploadFieldName } from 'src/dtos/asset-media.dto.js';
@@ -238,6 +239,8 @@ export interface IEntityJob extends IBaseJob {
   notify?: boolean;
 }
 
+export type IDownloadVariantJob = DownloadVariantJob & IBaseJob & { requestId?: string };
+
 export interface IAssetDeleteJob extends IEntityJob {
   deleteOnDisk: boolean;
 }
@@ -461,7 +464,11 @@ export type JobItem =
   | { name: JobName.IntegrityDeleteReports; data: IIntegrityDeleteReportsJob }
 
   // Editor
-  | { name: JobName.AssetEditThumbnailGeneration; data: IEntityJob };
+  | { name: JobName.AssetEditThumbnailGeneration; data: IEntityJob }
+
+  // Download variants
+  | { name: JobName.DownloadVariantGenerate; data: IDownloadVariantJob }
+  | { name: JobName.DownloadCacheCleanup; data?: IBaseJob };
 
 export type VectorExtension = (typeof VECTOR_EXTENSIONS)[number];
 

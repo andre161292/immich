@@ -45,6 +45,7 @@ const updatedConfig = Object.freeze<SystemConfig>({
     [QueueName.Workflow]: { concurrency: 5 },
     [QueueName.IntegrityCheck]: { concurrency: 1 },
     [QueueName.Editor]: { concurrency: 2 },
+    [QueueName.DownloadVariant]: { concurrency: 2 },
   },
   backup: {
     database: {
@@ -52,6 +53,16 @@ const updatedConfig = Object.freeze<SystemConfig>({
       cronExpression: '0 02 * * *',
       keepLastAmount: 14,
     },
+  },
+  downloadVariants: {
+    enabled: true,
+    sharedLinks: true,
+    imageQuality: 90,
+    maxAssetsPerRequest: 5000,
+    maxVideosPerRequest: 50,
+    maxActiveRequests: 5,
+    cacheDays: 7,
+    cacheSizeGb: 20,
   },
   ffmpeg: {
     crf: 30,

@@ -160,6 +160,20 @@ const AdminConfigSchemaWithVisibility = z
           .meta({ id: 'AdminConfigDatabaseBackupDto' }),
       })
       .meta({ id: 'AdminConfigBackupsDto' }),
+    downloadVariants: z
+      .object({
+        enabled: configBool.describe('Allow downloading converted variants').meta({ visibility: Public }),
+        sharedLinks: configBool
+          .describe('Allow shared link visitors to request converted variants')
+          .meta({ visibility: Public }),
+        imageQuality: z.int().min(1).max(100).describe('Quality of converted images'),
+        maxAssetsPerRequest: z.int().min(1).describe('Maximum number of files per download request'),
+        maxVideosPerRequest: z.int().min(0).describe('Maximum number of videos to convert per download request'),
+        maxActiveRequests: z.int().min(1).describe('Maximum number of active requests per user or shared link visitor'),
+        cacheDays: z.int().min(1).describe('Days to keep converted files and download requests'),
+        cacheSizeGb: z.int().min(1).describe('Maximum size of the download cache in GiB'),
+      })
+      .meta({ id: 'AdminConfigDownloadVariantsDto' }),
     ffmpeg: AdminConfigFFmpegSchema,
     integrityChecks: z
       .object({
@@ -196,6 +210,7 @@ const AdminConfigSchemaWithVisibility = z
         workflow: AdminConfigJobSettingsSchema,
         editor: AdminConfigJobSettingsSchema,
         integrityCheck: AdminConfigJobSettingsSchema,
+        downloadVariant: AdminConfigJobSettingsSchema,
       })
       .meta({ id: 'AdminConfigJobDto' }),
     logging: z
@@ -551,6 +566,16 @@ export const defaults = Object.freeze<SystemConfig>({
       keepLastAmount: 14,
     },
   },
+  downloadVariants: {
+    enabled: true,
+    sharedLinks: true,
+    imageQuality: 90,
+    maxAssetsPerRequest: 5000,
+    maxVideosPerRequest: 50,
+    maxActiveRequests: 5,
+    cacheDays: 7,
+    cacheSizeGb: 20,
+  },
   ffmpeg: {
     crf: 23,
     threads: 0,
@@ -611,6 +636,7 @@ export const defaults = Object.freeze<SystemConfig>({
     workflow: { concurrency: 5 },
     editor: { concurrency: 2 },
     integrityCheck: { concurrency: 1 },
+    downloadVariant: { concurrency: 2 },
   },
   logging: {
     enabled: true,

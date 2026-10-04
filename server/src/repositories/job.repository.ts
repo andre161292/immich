@@ -10,6 +10,7 @@ import { ImmichWorker, JobName, JobStatus, MetadataKey, QueueCleanType, QueueJob
 import { ConfigRepository } from 'src/repositories/config.repository.js';
 import { EventRepository } from 'src/repositories/event.repository.js';
 import { LoggingRepository } from 'src/repositories/logging.repository.js';
+import { getDownloadVariantJobId } from 'src/utils/download-variant.js';
 import { ImmichStartupError, getKeyByValue, getMethodNames } from 'src/utils/misc.js';
 
 type JobMapItem = {
@@ -276,6 +277,9 @@ export class JobRepository {
       }
       case JobName.DatabaseBackup: {
         return { deduplication: { id: JobName.DatabaseBackup } };
+      }
+      case JobName.DownloadVariantGenerate: {
+        return { jobId: getDownloadVariantJobId(item.data.output) };
       }
       default: {
         return null;
