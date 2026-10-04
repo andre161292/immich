@@ -328,16 +328,17 @@ export const getAssetActions = ($t: MessageFormatter, asset: AssetResponseDto & 
 };
 
 export const handleDownloadAsset = async (asset: AssetResponseDto, { edited }: { edited: boolean }) => {
-  if (
-    edited &&
-    (await handleDownloadVariant({
-      assetIds: [asset.id],
-      name: asset.originalFileName,
-      single: true,
-      hasImages: asset.type === AssetTypeEnum.Image,
-      hasVideos: asset.type === AssetTypeEnum.Video || !!asset.livePhotoVideoId,
-    }))
-  ) {
+  const { handled, excludeLivePhotoVideos } = edited
+    ? await handleDownloadVariant({
+        assetIds: [asset.id],
+        name: asset.originalFileName,
+        single: true,
+        hasImages: asset.type === AssetTypeEnum.Image,
+        hasVideos: asset.type === AssetTypeEnum.Video || !!asset.livePhotoVideoId,
+        hasLivePhotos: !!asset.livePhotoVideoId,
+      })
+    : { handled: false, excludeLivePhotoVideos: false };
+  if (handled) {
     return;
   }
 
@@ -355,7 +356,7 @@ export const handleDownloadAsset = async (asset: AssetResponseDto, { edited }: {
     return asset.originalPath.includes('encoded-video');
   };
 
-  if (asset.livePhotoVideoId) {
+  if (asset.livePhotoVideoId && !excludeLivePhotoVideos) {
     const motionAsset = await getAssetInfo({ ...authManager.params, id: asset.livePhotoVideoId });
     if (
       !isAndroidMotionVideo(motionAsset) ||

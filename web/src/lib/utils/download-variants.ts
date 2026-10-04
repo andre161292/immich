@@ -63,24 +63,26 @@ export const getPreset = (variant: DownloadVariantDto) => {
   return DownloadPreset.Custom;
 };
 
-export type DownloadOptionsResult = { variant: DownloadVariantDto; remember: boolean };
+export type DownloadOptionsResult = { variant: DownloadVariantDto; excludeLivePhotoVideos: boolean; remember: boolean };
 
 export type DownloadVariantPreferences = {
   /** show the download options before every download */
   ask: boolean;
   variant: DownloadVariantDto;
+  /** only download the still image of live photos */
+  excludeLivePhotoVideos: boolean;
 };
 
 export const downloadVariantPreferences = new PersistedLocalStorage<DownloadVariantPreferences>(
   'download-variant',
-  { ask: true, variant: { ...ORIGINAL_VARIANT } },
+  { ask: true, variant: { ...ORIGINAL_VARIANT }, excludeLivePhotoVideos: true },
   { upgrade: 'merge' },
 );
 
 /** Shared link visitors often can't open HEIC or HEVC, so suggest compatible files to them */
 const sharedLinkVariantPreferences = new PersistedLocalStorage<DownloadVariantPreferences>(
   'download-variant-shared-link',
-  { ask: true, variant: { ...COMPATIBLE_VARIANT } },
+  { ask: true, variant: { ...COMPATIBLE_VARIANT }, excludeLivePhotoVideos: true },
   { upgrade: 'merge' },
 );
 
@@ -152,70 +154,99 @@ export const isDownloadVariantsEnabled = async () => {
   return enabled && (!authManager.isSharedLink || sharedLinks);
 };
 
-type ChooseOptions = { hasImages?: boolean; hasVideos?: boolean };
+type ChooseOptions = { hasImages?: boolean; hasVideos?: boolean; hasLivePhotos?: boolean };
 
-/**
- * Asks which variant to download.
- * Returns `null` for the original files, or `undefined` when the user cancelled.
- */
-export const chooseDownloadVariant = async ({ hasImages = true, hasVideos = true }: ChooseOptions = {}) => {
+export type DownloadChoice = {
+  /** `null` for the original files */
+  variant: DownloadVariantDto | null;
+  excludeLivePhotoVideos: boolean;
+};
+
+/** Asks which variant to download, returns `undefined` when the user cancelled */
+export const chooseDownloadVariant = async ({
+  hasImages = true,
+  hasVideos = true,
+  hasLivePhotos = true,
+}: ChooseOptions = {}): Promise<DownloadChoice | undefined> => {
   if (!(await isDownloadVariantsEnabled())) {
-    return null;
+    return { variant: null, excludeLivePhotoVideos: false };
   }
 
   const preferences = getPreferences().current;
   if (!preferences.ask) {
-    return isOriginalVariant(preferences.variant) ? null : preferences.variant;
+    return {
+      variant: isOriginalVariant(preferences.variant) ? null : preferences.variant,
+      excludeLivePhotoVideos: preferences.excludeLivePhotoVideos,
+    };
   }
 
   const result = (await modalManager.show(DownloadOptionsModal, {
     hasImages,
     hasVideos,
+    hasLivePhotos,
     variant: preferences.variant,
+    excludeLivePhotoVideos: preferences.excludeLivePhotoVideos,
   })) as DownloadOptionsResult | undefined;
   if (!result) {
     return;
   }
 
-  getPreferences().current = { ask: !result.remember, variant: result.variant };
-  return isOriginalVariant(result.variant) ? null : result.variant;
+  getPreferences().current = {
+    ask: !result.remember,
+    variant: result.variant,
+    excludeLivePhotoVideos: result.excludeLivePhotoVideos,
+  };
+  return {
+    variant: isOriginalVariant(result.variant) ? null : result.variant,
+    excludeLivePhotoVideos: result.excludeLivePhotoVideos,
+  };
 };
 
-type DownloadTarget = Omit<DownloadInfoDto, 'archiveSize'> & {
+type DownloadTarget = Omit<DownloadInfoDto, 'archiveSize' | 'excludeLivePhotoVideos'> & {
   name: string;
   single?: boolean;
 } & ChooseOptions;
 
-/**
- * Asks for the download variant and prepares it on the server if needed.
- * Returns `true` when the download was taken care of (or cancelled) and the regular download should not continue.
- */
-export const handleDownloadVariant = async ({ hasImages, hasVideos, ...target }: DownloadTarget) => {
-  const variant = await chooseDownloadVariant({ hasImages, hasVideos });
-  if (variant === undefined) {
-    return true;
+export type DownloadVariantResult = {
+  /** the download was taken care of (or cancelled), the regular download should not continue */
+  handled: boolean;
+  excludeLivePhotoVideos: boolean;
+};
+
+/** Asks for the download variant and prepares it on the server if needed */
+export const handleDownloadVariant = async ({
+  hasImages,
+  hasVideos,
+  hasLivePhotos,
+  ...target
+}: DownloadTarget): Promise<DownloadVariantResult> => {
+  const choice = await chooseDownloadVariant({ hasImages, hasVideos, hasLivePhotos });
+  if (!choice) {
+    return { handled: true, excludeLivePhotoVideos: false };
   }
-  if (variant === null) {
-    return false;
+
+  const { variant, excludeLivePhotoVideos } = choice;
+  if (!variant) {
+    return { handled: false, excludeLivePhotoVideos };
   }
 
   const $t = await getFormatter();
   const [error, response] = await withError(() =>
     createDownloadRequest({
       ...getDownloadRequestParams(),
-      downloadRequestCreateDto: { ...target, variant },
+      downloadRequestCreateDto: { ...target, excludeLivePhotoVideos, variant },
     }),
   );
   if (error || !response) {
     handleError(error, $t('errors.unable_to_download_files'));
-    return true;
+    return { handled: true, excludeLivePhotoVideos };
   }
 
   if (response.immediate || !response.request) {
-    return false;
+    return { handled: false, excludeLivePhotoVideos };
   }
 
   downloadRequestManager.add(response.request);
   toastManager.primary($t('download_preparing', { values: { name: response.request.name } }), { timeout: 10_000 });
-  return true;
+  return { handled: true, excludeLivePhotoVideos };
 };

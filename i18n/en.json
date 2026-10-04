@@ -912,6 +912,8 @@
   "download_canceled": "Download canceled",
   "download_complete": "Download complete",
   "download_enqueue": "Download enqueued",
+  "download_exclude_live_photo_videos": "Skip live photo videos",
+  "download_exclude_live_photo_videos_description": "Only download the still image of live photos, without the short video next to it.",
   "download_failed": "Download failed",
   "download_failed_status": "The files could not be converted",
   "download_finished": "Download finished",
