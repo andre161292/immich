@@ -50,7 +50,7 @@ export class DownloadService extends BaseService {
 
     for await (const asset of assets) {
       // motion part of live photos
-      if (asset.livePhotoVideoId) {
+      if (asset.livePhotoVideoId && !dto.excludeLivePhotoVideos) {
         motionIds.add(asset.livePhotoVideoId);
       }
 

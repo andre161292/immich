@@ -7,6 +7,7 @@ const DownloadInfoSchema = z
     albumId: z.uuidv4().optional().describe('Album ID to download'),
     userId: z.uuidv4().optional().describe('User ID to download assets from'),
     archiveSize: z.int().min(1).optional().describe('Archive size limit in bytes'),
+    excludeLivePhotoVideos: z.boolean().optional().describe('Leave out the video part of live photos'),
   })
   .meta({ id: 'DownloadInfoDto' });
 

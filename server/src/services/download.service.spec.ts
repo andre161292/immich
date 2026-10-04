@@ -324,6 +324,22 @@ describe(DownloadService.name, () => {
       });
     });
 
+    it('should leave out the video portion of a live photo when requested', async () => {
+      const assetIds = ['asset-1'];
+
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set(assetIds));
+      mocks.user.getMetadata.mockResolvedValue([]);
+      mocks.downloadRepository.downloadAssetIds.mockReturnValue(
+        makeStream([{ id: 'asset-1', livePhotoVideoId: 'asset-3', size: 5000 }]),
+      );
+
+      await expect(sut.getDownloadInfo(authStub.admin, { assetIds, excludeLivePhotoVideos: true })).resolves.toEqual({
+        totalSize: 5000,
+        archives: [{ assetIds: ['asset-1'], size: 5000 }],
+      });
+      expect(mocks.downloadRepository.downloadMotionAssetIds).not.toHaveBeenCalled();
+    });
+
     it('should skip the video portion of an android live photo by default', async () => {
       const assetIds = ['asset-1'];
 
