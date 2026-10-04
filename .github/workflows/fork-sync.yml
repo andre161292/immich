@@ -1,0 +1,224 @@
+name: Fork Sync
+# Rebases the fork onto the latest upstream release.
+#  1. replays the fork commits onto the new upstream tag and regenerates the API clients
+#  2. tests the result on a temporary branch (fork-sync/<tag>)
+#  3. moves fork/vX.Y to it and, if the repository variable AUTO_RELEASE is 'true', tags vX.Y.Z-fork.1
+# Conflicts are reported in an issue and have to be resolved by hand.
+#
+# Needs the secret FORK_SYNC_TOKEN: a fine-grained token for this repository with
+# "Contents: read and write" and "Workflows: read and write". The default token can neither push
+# upstream changes to .github/workflows nor start the release workflow by pushing a tag.
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+    inputs:
+      upstream-tag:
+        description: 'Upstream tag to rebase onto (default: latest release)'
+        type: string
+        required: false
+
+concurrency:
+  group: fork-sync
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  rebase:
+    name: Rebase onto upstream
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+      issues: write
+    outputs:
+      tag: ${{ steps.target.outputs.tag }}
+      branch: ${{ steps.target.outputs.branch }}
+      sync-branch: ${{ steps.rebase.outputs.sync-branch }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.FORK_SYNC_TOKEN }}
+
+      - name: Disable upstream workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/fork/disable-upstream-workflows.sh
+
+      - name: Determine target
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ inputs.upstream-tag }}
+        run: |
+          tag="${INPUT_TAG:-$(gh api repos/immich-app/immich/releases/latest --jq .tag_name)}"
+          if [[ ! "$tag" =~ ^v([0-9]+)\.([0-9]+)\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::Unexpected upstream tag '$tag'"
+            exit 1
+          fi
+          branch="fork/v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+          if [[ -n "$(git ls-remote --tags origin "refs/tags/${tag}-fork.*")" ]]; then
+            echo "Fork release for $tag already exists"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Mise
+        if: ${{ !steps.target.outputs.skip }}
+        uses: immich-app/devtools/actions/use-mise@06a9ef925332c91be647d6256642b86b398592c8 # use-mise-action-v3.2.1
+        with:
+          github_token: ${{ github.token }}
+
+      - name: Rebase
+        id: rebase
+        if: ${{ !steps.target.outputs.skip }}
+        env:
+          TAG: ${{ steps.target.outputs.tag }}
+          BRANCH: ${{ steps.target.outputs.branch }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git remote add upstream https://github.com/immich-app/immich.git
+          git fetch --no-tags upstream "refs/tags/${TAG}:refs/tags/${TAG}"
+
+          # the branch to take the fork commits from: the target branch, or the newest fork branch
+          if git rev-parse --verify --quiet "origin/${BRANCH}" > /dev/null; then
+            source="origin/${BRANCH}"
+          else
+            source="origin/$(git branch -r --list 'origin/fork/v*' --format '%(refname:lstrip=3)' | sort -V | tail -n 1)"
+          fi
+          base="$(git describe --tags --abbrev=0 --exclude '*-fork*' "$source")"
+          echo "Replaying ${source} (based on ${base}) onto ${TAG}"
+
+          git switch --detach "$TAG"
+          for commit in $(git rev-list --reverse --no-merges "${base}..${source}"); do
+            subject="$(git log -1 --format=%s "$commit")"
+            if [[ "$subject" == "chore(fork): regenerate clients" ]]; then
+              continue
+            fi
+            if ! git cherry-pick --empty=drop "$commit"; then
+              {
+                echo "conflict-commit=${commit}"
+                echo "conflict-subject=${subject}"
+                echo 'conflict-files<<EOF'
+                git diff --name-only --diff-filter=U
+                echo 'EOF'
+                echo "base=${base}"
+                echo "source=${source}"
+              } >> "$GITHUB_OUTPUT"
+              git cherry-pick --abort
+              exit 1
+            fi
+          done
+
+          mise //:open-api
+          git add open-api/immich-openapi-specs.json packages/sdk/src
+          git commit --allow-empty -m 'chore(fork): regenerate clients'
+
+          sync_branch="fork-sync/${TAG}"
+          git push --force origin "refs/tags/${TAG}" "HEAD:refs/heads/${sync_branch}"
+          echo "sync-branch=${sync_branch}" >> "$GITHUB_OUTPUT"
+
+      - name: Report conflict
+        if: ${{ failure() && steps.rebase.outputs.conflict-commit }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.target.outputs.tag }}
+          BRANCH: ${{ steps.target.outputs.branch }}
+          BASE: ${{ steps.rebase.outputs.base }}
+          SOURCE: ${{ steps.rebase.outputs.source }}
+          COMMIT: ${{ steps.rebase.outputs.conflict-commit }}
+          SUBJECT: ${{ steps.rebase.outputs.conflict-subject }}
+          FILES: ${{ steps.rebase.outputs.conflict-files }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Rebase onto ${TAG} needs manual conflict resolution"
+          cat > body.md <<EOF
+          The fork commits could not be replayed onto [${TAG}](https://github.com/immich-app/immich/releases/tag/${TAG}) automatically ([run](${RUN_URL})).
+
+          Conflicting commit: \`${COMMIT}\` ${SUBJECT}
+
+          Conflicting files:
+          $(sed 's/^/- /' <<< "${FILES}")
+
+          To resolve it locally:
+
+          \`\`\`sh
+          git fetch origin && git fetch upstream tag ${TAG}
+          git switch -C ${BRANCH} ${TAG}
+          git cherry-pick \$(git log --reverse --format=%H --invert-grep --grep='^chore(fork): regenerate clients' ${BASE}..${SOURCE})
+          # resolve, git add, git cherry-pick --continue
+          mise //:open-api && git add open-api packages/sdk && git commit -m 'chore(fork): regenerate clients'
+          git push --force-with-lease origin ${BRANCH}
+          git tag ${TAG}-fork.1 && git push origin ${TAG}-fork.1
+          \`\`\`
+          EOF
+          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title \"${title}\"" --json number --jq '.[0].number')"
+          if [[ -n "$existing" ]]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file body.md
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body-file body.md
+          fi
+
+  test:
+    name: Test
+    needs: rebase
+    if: ${{ needs.rebase.outputs.sync-branch }}
+    uses: ./.github/workflows/fork-ci.yml
+    permissions:
+      contents: read
+    with:
+      ref: ${{ needs.rebase.outputs.sync-branch }}
+
+  promote:
+    name: Promote
+    needs: [rebase, test]
+    if: ${{ needs.rebase.outputs.sync-branch }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.FORK_SYNC_TOKEN }}
+
+      - name: Move the fork branch
+        env:
+          TAG: ${{ needs.rebase.outputs.tag }}
+          BRANCH: ${{ needs.rebase.outputs.branch }}
+          SYNC_BRANCH: ${{ needs.rebase.outputs.sync-branch }}
+          AUTO_RELEASE: ${{ vars.AUTO_RELEASE }}
+        run: |
+          set -euo pipefail
+          git push --force origin "refs/remotes/origin/${SYNC_BRANCH}:refs/heads/${BRANCH}"
+          git push origin --delete "${SYNC_BRANCH}"
+          if [[ "$AUTO_RELEASE" == "true" ]]; then
+            git tag "${TAG}-fork.1" "origin/${SYNC_BRANCH}"
+            git push origin "refs/tags/${TAG}-fork.1"
+          fi
+
+      - name: Announce
+        if: ${{ vars.AUTO_RELEASE != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.rebase.outputs.tag }}
+          BRANCH: ${{ needs.rebase.outputs.branch }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title "Ready to release ${TAG}-fork.1" \
+            --body "\`${BRANCH}\` was rebased onto ${TAG} and the tests passed. Publish the release with:
+
+          \`\`\`sh
+          git fetch origin && git tag ${TAG}-fork.1 origin/${BRANCH} && git push origin ${TAG}-fork.1
+          \`\`\`"

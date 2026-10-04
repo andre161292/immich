@@ -1,0 +1,127 @@
+name: Fork Release
+# Builds and publishes the server image of a fork release to ghcr.io/<owner>/immich-server.
+# Triggered by pushing a tag like v3.3.0-fork.1, or by running it manually on such a tag:
+#   gh workflow run fork-release.yml --ref v3.3.0-fork.1
+
+on:
+  push:
+    tags: ['v*-fork.*']
+  workflow_dispatch:
+
+concurrency:
+  group: fork-release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  prepare:
+    name: Prepare release
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    outputs:
+      tags: ${{ steps.tags.outputs.tags }}
+    steps:
+      - name: Check tag
+        id: tags
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ "$REF_TYPE" != "tag" || ! "$TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)-fork\.([0-9]+)$ ]]; then
+            echo "::error::Run this workflow on a tag like v3.3.0-fork.1, not on '$TAG'"
+            exit 1
+          fi
+          minor="v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}-fork"
+          {
+            echo 'tags<<EOF'
+            echo "type=raw,value=${TAG}"
+            echo "type=raw,value=${minor}"
+            echo 'type=raw,value=fork'
+            echo 'type=sha,format=long,prefix=commit-'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/fork
+
+      # publishing the GitHub release would otherwise start upstream workflows (docker, sdk, cli, fdroid, docs)
+      - name: Disable upstream workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/fork/disable-upstream-workflows.sh
+
+  test:
+    name: Test
+    needs: prepare
+    uses: ./.github/workflows/fork-ci.yml
+    permissions:
+      contents: read
+    with:
+      ref: ${{ github.ref }}
+
+  server:
+    name: Build and push server image
+    needs: [prepare, test]
+    uses: immich-app/devtools/.github/workflows/multi-runner-build.yml@4d420cf8e5ea499f99b2c2849ff9a219d5f7b178 # multi-runner-build-workflow-v4.0.0
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    with:
+      image: immich-server
+      context: .
+      dockerfile: server/Dockerfile
+      tags: ${{ needs.prepare.outputs.tags }}
+      platforms: ${{ vars.FORK_PLATFORMS || 'linux/amd64,linux/arm64' }}
+      build-args: |
+        DEVICE=cpu
+        BUILD_REPOSITORY=${{ github.repository }}
+
+  release:
+    name: Create GitHub release
+    needs: server
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/immich-server
+        run: |
+          base="$(git describe --tags --abbrev=0 --exclude '*-fork*' "${TAG}")"
+          {
+            echo "Fork release based on upstream [${base}](https://github.com/immich-app/immich/releases/tag/${base})."
+            echo
+            echo '## Fork changes'
+            git log --reverse --format='- %s' "${base}..${TAG}"
+            echo
+            echo '## Image'
+            echo
+            echo '```'
+            echo "${IMAGE}:${TAG}"
+            echo '```'
+            echo
+            echo 'In your `docker-compose.yml`, only the server image changes. Keep the machine learning image of the upstream version:'
+            echo
+            echo '```yaml'
+            echo 'immich-server:'
+            echo "  image: ${IMAGE}:${TAG}"
+            echo 'immich-machine-learning:'
+            echo "  image: ghcr.io/immich-app/immich-machine-learning:${base}"
+            echo '```'
+          } > notes.md
+          gh release create "${TAG}" --repo "${GITHUB_REPOSITORY}" --title "${TAG}" --notes-file notes.md --verify-tag
