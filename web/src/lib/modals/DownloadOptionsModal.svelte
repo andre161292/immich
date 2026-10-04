@@ -20,14 +20,24 @@
   type Props = {
     hasImages?: boolean;
     hasVideos?: boolean;
+    hasLivePhotos?: boolean;
     variant: DownloadVariantDto;
+    excludeLivePhotoVideos?: boolean;
     onClose: (result?: DownloadOptionsResult) => void;
   };
 
-  let { hasImages = true, hasVideos = true, variant: initial, onClose }: Props = $props();
+  let {
+    hasImages = true,
+    hasVideos = true,
+    hasLivePhotos = true,
+    variant: initial,
+    excludeLivePhotoVideos: initialExcludeLivePhotoVideos = true,
+    onClose,
+  }: Props = $props();
 
   let preset = $state(getPreset(initial));
   let custom = $state({ ...initial });
+  let excludeLivePhotoVideos = $state(initialExcludeLivePhotoVideos);
   let remember = $state(false);
 
   const variant = $derived.by(() => {
@@ -84,7 +94,7 @@
   });
 
   const onSubmit = () => {
-    onClose({ variant: { ...variant }, remember });
+    onClose({ variant: { ...variant }, excludeLivePhotoVideos, remember });
   };
 </script>
 
@@ -122,6 +132,13 @@
 
       <Field label={$t('download_keep_metadata')}>
         <Switch bind:checked={custom.keepMetadata} />
+      </Field>
+    {/if}
+
+    {#if hasImages && hasLivePhotos}
+      <Field label={$t('download_exclude_live_photo_videos')}>
+        <Switch bind:checked={excludeLivePhotoVideos} />
+        <HelperText>{$t('download_exclude_live_photo_videos_description')}</HelperText>
       </Field>
     {/if}
 

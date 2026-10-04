@@ -53,12 +53,13 @@ export const removeTag = async ({
 };
 
 export const downloadArchive = async (fileName: string, options: Omit<DownloadInfoDto, 'archiveSize'>) => {
-  if (await handleDownloadVariant({ ...options, name: fileName })) {
+  const { handled, excludeLivePhotoVideos } = await handleDownloadVariant({ ...options, name: fileName });
+  if (handled) {
     return;
   }
 
   const archiveSize = authManager.authenticated ? authManager.preferences.download.archiveSize : undefined;
-  const dto = { ...options, archiveSize };
+  const dto = { ...options, archiveSize, excludeLivePhotoVideos };
   const [error, downloadInfo] = await withError(() => getDownloadInfo({ ...authManager.params, downloadInfoDto: dto }));
   if (error) {
     const $t = get(t);

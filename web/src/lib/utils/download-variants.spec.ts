@@ -47,7 +47,7 @@ describe('download variants', () => {
     vi.resetAllMocks();
     vi.mocked(getFormatter).mockResolvedValue(((key: string) => key) as never);
     resetDownloadVariantsConfig();
-    downloadVariantPreferences.current = { ask: true, variant: { ...ORIGINAL_VARIANT } };
+    downloadVariantPreferences.current = { ask: true, variant: { ...ORIGINAL_VARIANT }, excludeLivePhotoVideos: true };
     downloadRequestManager.requests = [];
     sdkMock.getPublicConfig.mockResolvedValue({ downloadVariants: { enabled: true, sharedLinks: true } } as never);
   });
@@ -69,52 +69,90 @@ describe('download variants', () => {
     it('should continue with the regular download when the feature is disabled', async () => {
       sdkMock.getPublicConfig.mockResolvedValue({ downloadVariants: { enabled: false, sharedLinks: false } } as never);
 
-      await expect(handleDownloadVariant({ assetIds: ['asset-1'], name: 'test' })).resolves.toBe(false);
+      await expect(handleDownloadVariant({ assetIds: ['asset-1'], name: 'test' })).resolves.toEqual({
+        handled: false,
+        excludeLivePhotoVideos: false,
+      });
       expect(modalManager.show).not.toHaveBeenCalled();
     });
 
     it('should continue with the regular download when the config cannot be loaded', async () => {
       sdkMock.getPublicConfig.mockRejectedValue(new Error('offline'));
 
-      await expect(handleDownloadVariant({ assetIds: ['asset-1'], name: 'test' })).resolves.toBe(false);
+      await expect(handleDownloadVariant({ assetIds: ['asset-1'], name: 'test' })).resolves.toMatchObject({
+        handled: false,
+      });
     });
 
     it('should stop when the modal is cancelled', async () => {
       vi.mocked(modalManager.show).mockResolvedValue(undefined as never);
 
-      await expect(handleDownloadVariant({ assetIds: ['asset-1'], name: 'test' })).resolves.toBe(true);
+      await expect(handleDownloadVariant({ assetIds: ['asset-1'], name: 'test' })).resolves.toMatchObject({
+        handled: true,
+      });
       expect(sdkMock.createDownloadRequest).not.toHaveBeenCalled();
     });
 
     it('should continue with the regular download for original files', async () => {
-      vi.mocked(modalManager.show).mockResolvedValue({ variant: ORIGINAL_VARIANT, remember: false } as never);
+      vi.mocked(modalManager.show).mockResolvedValue({
+        variant: ORIGINAL_VARIANT,
+        excludeLivePhotoVideos: true,
+        remember: false,
+      } as never);
 
-      await expect(handleDownloadVariant({ assetIds: ['asset-1'], name: 'test' })).resolves.toBe(false);
+      // the regular download leaves out live photo videos as well
+      await expect(handleDownloadVariant({ assetIds: ['asset-1'], name: 'test' })).resolves.toEqual({
+        handled: false,
+        excludeLivePhotoVideos: true,
+      });
       expect(sdkMock.createDownloadRequest).not.toHaveBeenCalled();
     });
 
     it('should continue with the regular download when nothing needs to be converted', async () => {
-      vi.mocked(modalManager.show).mockResolvedValue({ variant: COMPATIBLE_VARIANT, remember: false } as never);
+      vi.mocked(modalManager.show).mockResolvedValue({
+        variant: COMPATIBLE_VARIANT,
+        excludeLivePhotoVideos: false,
+        remember: false,
+      } as never);
       sdkMock.createDownloadRequest.mockResolvedValue({ immediate: true });
 
-      await expect(handleDownloadVariant({ assetIds: ['asset-1'], name: 'test', single: true })).resolves.toBe(false);
+      await expect(handleDownloadVariant({ assetIds: ['asset-1'], name: 'test', single: true })).resolves.toEqual({
+        handled: false,
+        excludeLivePhotoVideos: false,
+      });
       expect(sdkMock.createDownloadRequest).toHaveBeenCalledWith(
         expect.objectContaining({
-          downloadRequestCreateDto: { assetIds: ['asset-1'], name: 'test', single: true, variant: COMPATIBLE_VARIANT },
+          downloadRequestCreateDto: {
+            assetIds: ['asset-1'],
+            name: 'test',
+            single: true,
+            excludeLivePhotoVideos: false,
+            variant: COMPATIBLE_VARIANT,
+          },
         }),
       );
     });
 
     it('should track the request when files are being converted', async () => {
-      vi.mocked(modalManager.show).mockResolvedValue({ variant: COMPATIBLE_VARIANT, remember: false } as never);
+      vi.mocked(modalManager.show).mockResolvedValue({
+        variant: COMPATIBLE_VARIANT,
+        excludeLivePhotoVideos: false,
+        remember: false,
+      } as never);
       sdkMock.createDownloadRequest.mockResolvedValue({ immediate: false, request });
 
-      await expect(handleDownloadVariant({ albumId: 'album-1', name: 'Holiday' })).resolves.toBe(true);
+      await expect(handleDownloadVariant({ albumId: 'album-1', name: 'Holiday' })).resolves.toMatchObject({
+        handled: true,
+      });
       expect(downloadRequestManager.requests).toEqual([request]);
     });
 
     it('should not ask again when the choice was remembered', async () => {
-      vi.mocked(modalManager.show).mockResolvedValue({ variant: COMPATIBLE_VARIANT, remember: true } as never);
+      vi.mocked(modalManager.show).mockResolvedValue({
+        variant: COMPATIBLE_VARIANT,
+        excludeLivePhotoVideos: true,
+        remember: true,
+      } as never);
       sdkMock.createDownloadRequest.mockResolvedValue({ immediate: true });
 
       await handleDownloadVariant({ assetIds: ['asset-1'], name: 'test' });
@@ -122,7 +160,16 @@ describe('download variants', () => {
 
       expect(modalManager.show).toHaveBeenCalledTimes(1);
       expect(sdkMock.createDownloadRequest).toHaveBeenCalledTimes(2);
-      expect(downloadVariantPreferences.current).toEqual({ ask: false, variant: COMPATIBLE_VARIANT });
+      expect(downloadVariantPreferences.current).toEqual({
+        ask: false,
+        variant: COMPATIBLE_VARIANT,
+        excludeLivePhotoVideos: true,
+      });
+      expect(sdkMock.createDownloadRequest).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          downloadRequestCreateDto: expect.objectContaining({ excludeLivePhotoVideos: true }),
+        }),
+      );
     });
   });
 });

@@ -35,7 +35,11 @@ describe('DownloadOptionsModal', () => {
     expect(screen.getByText('download_preset_compatible_description')).toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'download' }));
 
-    expect(onClose).toHaveBeenCalledWith({ variant: COMPATIBLE_VARIANT, remember: false });
+    expect(onClose).toHaveBeenCalledWith({
+      variant: COMPATIBLE_VARIANT,
+      excludeLivePhotoVideos: true,
+      remember: false,
+    });
   });
 
   it('should show the custom options', async () => {
@@ -45,7 +49,7 @@ describe('DownloadOptionsModal', () => {
     expect(screen.getByText('videos')).toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'download' }));
 
-    expect(onClose).toHaveBeenCalledWith({ variant: custom, remember: false });
+    expect(onClose).toHaveBeenCalledWith({ variant: custom, excludeLivePhotoVideos: true, remember: false });
   });
 
   it('should only show the options for the selected media', () => {
@@ -56,11 +60,30 @@ describe('DownloadOptionsModal', () => {
   });
 
   it('should offer to remember the choice', async () => {
-    render(DownloadOptionsModal, { variant: ORIGINAL_VARIANT, onClose });
+    render(DownloadOptionsModal, { variant: ORIGINAL_VARIANT, hasLivePhotos: false, onClose });
 
     await fireEvent.click(screen.getByRole('switch'));
     await fireEvent.click(screen.getByRole('button', { name: 'download' }));
 
-    expect(onClose).toHaveBeenCalledWith({ variant: ORIGINAL_VARIANT, remember: true });
+    expect(onClose).toHaveBeenCalledWith({ variant: ORIGINAL_VARIANT, excludeLivePhotoVideos: true, remember: true });
+  });
+
+  it('should skip live photo videos by default', async () => {
+    render(DownloadOptionsModal, { variant: ORIGINAL_VARIANT, onClose });
+
+    const [skipLivePhotoVideos] = screen.getAllByRole('switch');
+    expect(skipLivePhotoVideos).toBeChecked();
+    expect(screen.getByText('download_exclude_live_photo_videos')).toBeInTheDocument();
+
+    await fireEvent.click(skipLivePhotoVideos);
+    await fireEvent.click(screen.getByRole('button', { name: 'download' }));
+
+    expect(onClose).toHaveBeenCalledWith({ variant: ORIGINAL_VARIANT, excludeLivePhotoVideos: false, remember: false });
+  });
+
+  it('should not offer to skip live photo videos without live photos', () => {
+    render(DownloadOptionsModal, { variant: ORIGINAL_VARIANT, hasLivePhotos: false, onClose });
+
+    expect(screen.queryByText('download_exclude_live_photo_videos')).not.toBeInTheDocument();
   });
 });
