@@ -1,6 +1,5 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Readable } from 'node:stream';
-import { vitest } from 'vitest';
 import {
   DownloadImageFormat,
   DownloadImageSize,
@@ -182,6 +181,42 @@ describe(DownloadVariantService.name, () => {
       expect(stored).toEqual([
         `/data/download-cache/requests/u-${authStub.admin.user.id}/${response.request!.id}.json`,
       ]);
+    });
+
+    it('should include the video of live photos', async () => {
+      const live = { ...heic, id: '8a0ad5ce-2c8d-4e3a-9c3b-9f4d8b2e4f33' };
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set([live.id]));
+      mocks.downloadRepository.downloadAssetIds.mockImplementation(() =>
+        makeStream([{ id: live.id, livePhotoVideoId: mov.id, size: 1000 }]),
+      );
+      mocks.downloadRepository.downloadMotionAssetIds.mockImplementation(() =>
+        makeStream([{ id: mov.id, livePhotoVideoId: null, size: 1000, originalPath: mov.originalPath }]),
+      );
+      mocks.downloadRepository.getForVariants.mockResolvedValue([live, mov]);
+
+      const { request } = await sut.create(authStub.admin, { assetIds: [live.id], variant: compatible });
+
+      expect(request).toMatchObject({ total: 2 });
+      expect(queuedJobs().map(({ id }) => id)).toEqual([live.id, mov.id]);
+    });
+
+    it('should leave out the video of live photos when requested', async () => {
+      const live = { ...heic, id: '8a0ad5ce-2c8d-4e3a-9c3b-9f4d8b2e4f33' };
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set([live.id]));
+      mocks.downloadRepository.downloadAssetIds.mockImplementation(() =>
+        makeStream([{ id: live.id, livePhotoVideoId: mov.id, size: 1000 }]),
+      );
+      mocks.downloadRepository.getForVariants.mockResolvedValue([live]);
+
+      const { request } = await sut.create(authStub.admin, {
+        assetIds: [live.id],
+        excludeLivePhotoVideos: true,
+        variant: compatible,
+      });
+
+      expect(request).toMatchObject({ total: 1 });
+      expect(queuedJobs().map(({ id }) => id)).toEqual([live.id]);
+      expect(mocks.downloadRepository.downloadMotionAssetIds).not.toHaveBeenCalled();
     });
 
     it('should be disabled by the admin', async () => {

@@ -73,6 +73,7 @@ const DownloadRequestCreateSchema = z
     userId: z.uuidv4().optional().describe('User ID to download assets from'),
     name: z.string().max(200).optional().describe('Name of the download, used for the archive name'),
     single: z.boolean().optional().describe('Download the files individually instead of as an archive'),
+    excludeLivePhotoVideos: z.boolean().optional().describe('Leave out the video part of live photos'),
     variant: DownloadVariantSchema,
   })
   .meta({ id: 'DownloadRequestCreateDto' });

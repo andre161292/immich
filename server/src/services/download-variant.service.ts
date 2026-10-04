@@ -389,7 +389,7 @@ export class DownloadVariantService extends BaseService {
     const motionIds: string[] = [];
     for await (const asset of assets) {
       ids.push(asset.id);
-      if (asset.livePhotoVideoId) {
+      if (asset.livePhotoVideoId && !dto.excludeLivePhotoVideos) {
         motionIds.push(asset.livePhotoVideoId);
       }
     }
