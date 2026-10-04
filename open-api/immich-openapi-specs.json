@@ -22852,6 +22852,10 @@
             },
             "type": "array"
           },
+          "excludeLivePhotoVideos": {
+            "description": "Leave out the video part of live photos",
+            "type": "boolean"
+          },
           "userId": {
             "description": "User ID to download assets from",
             "format": "uuid",
@@ -22895,6 +22899,10 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "excludeLivePhotoVideos": {
+            "description": "Leave out the video part of live photos",
+            "type": "boolean"
           },
           "name": {
             "description": "Name of the download, used for the archive name",

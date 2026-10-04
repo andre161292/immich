@@ -1692,6 +1692,8 @@ export type DownloadInfoDto = {
     archiveSize?: number;
     /** Asset IDs to download */
     assetIds?: string[];
+    /** Leave out the video part of live photos */
+    excludeLivePhotoVideos?: boolean;
     /** User ID to download assets from */
     userId?: string;
 };
@@ -1742,6 +1744,8 @@ export type DownloadRequestCreateDto = {
     albumId?: string;
     /** Asset IDs to download */
     assetIds?: string[];
+    /** Leave out the video part of live photos */
+    excludeLivePhotoVideos?: boolean;
     /** Name of the download, used for the archive name */
     name?: string;
     /** Download the files individually instead of as an archive */
