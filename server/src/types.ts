@@ -6,6 +6,7 @@ import { AuthDto } from 'src/dtos/auth.dto';
 import { SystemConfig } from 'src/dtos/config.dto';
 import { AssetEditActionItem } from 'src/dtos/editing.dto';
 import { SetMaintenanceModeDto } from 'src/dtos/maintenance.dto';
+import type { DownloadVariantJob } from 'src/utils/download-variant';
 import {
   AacProfile,
   AssetOrder,
@@ -225,6 +226,8 @@ export interface IEntityJob extends IBaseJob {
   source?: JobSource;
   notify?: boolean;
 }
+
+export type IDownloadVariantJob = DownloadVariantJob & IBaseJob & { requestId?: string };
 
 export interface IAssetDeleteJob extends IEntityJob {
   deleteOnDisk: boolean;
@@ -449,7 +452,11 @@ export type JobItem =
   | { name: JobName.IntegrityDeleteReports; data: IIntegrityDeleteReportsJob }
 
   // Editor
-  | { name: JobName.AssetEditThumbnailGeneration; data: IEntityJob };
+  | { name: JobName.AssetEditThumbnailGeneration; data: IEntityJob }
+
+  // Download variants
+  | { name: JobName.DownloadVariantGenerate; data: IDownloadVariantJob }
+  | { name: JobName.DownloadCacheCleanup; data?: IBaseJob };
 
 export type VectorExtension = (typeof VECTOR_EXTENSIONS)[number];
 

@@ -51,6 +51,7 @@ import { VersionService } from 'src/services/version.service';
 import { ViewService } from 'src/services/view.service';
 import { WorkflowExecutionService } from 'src/services/workflow-execution.service';
 import { WorkflowService } from 'src/services/workflow.service';
+import { DownloadVariantService } from 'src/services/download-variant.service';
 
 export const services = [
   ApiKeyService,
@@ -66,6 +67,7 @@ export const services = [
   DatabaseBackupService,
   DatabaseService,
   DownloadService,
+  DownloadVariantService,
   DuplicateService,
   IntegrityService,
   HlsService,

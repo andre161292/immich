@@ -44,6 +44,7 @@ import { UserController } from 'src/controllers/user.controller';
 import { VideoStreamController } from 'src/controllers/video-stream.controller';
 import { ViewController } from 'src/controllers/view.controller';
 import { WorkflowController } from 'src/controllers/workflow.controller';
+import { DownloadVariantController } from 'src/controllers/download-variant.controller';
 
 export const controllers = [
   ApiKeyController,
@@ -61,6 +62,7 @@ export const controllers = [
   ConfigPublicController,
   DatabaseBackupController,
   DownloadController,
+  DownloadVariantController,
   DuplicateController,
   FaceController,
   IntegrityAdminController,

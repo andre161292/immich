@@ -10,6 +10,8 @@ import { getKeysDeep } from 'src/utils/misc';
 import z from 'zod';
 
 const PUBLIC_PROPERTIES = [
+  'downloadVariants.enabled',
+  'downloadVariants.sharedLinks',
   'oauth.autoLaunch',
   'oauth.buttonText',
   'oauth.enabled',

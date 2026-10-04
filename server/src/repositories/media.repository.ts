@@ -128,6 +128,37 @@ export class MediaRepository {
     }
   }
 
+  /** Copies all metadata except orientation, dimensions, color profile and embedded previews, which no longer apply */
+  async copyMetadata(source: string, target: string): Promise<boolean> {
+    try {
+      await exiftool.write(
+        target,
+        {},
+        {
+          ignoreMinorErrors: true,
+          writeArgs: [
+            '-TagsFromFile',
+            source,
+            '-all:all',
+            '--Orientation',
+            '--ExifImageWidth',
+            '--ExifImageHeight',
+            '--ImageWidth',
+            '--ImageHeight',
+            '--ICC_Profile:all',
+            '--ThumbnailImage',
+            '--PreviewImage',
+            '-overwrite_original',
+          ],
+        },
+      );
+      return true;
+    } catch (error: any) {
+      this.logger.warn(`Could not copy metadata to ${target}: ${error.message}`);
+      return false;
+    }
+  }
+
   async copyTagGroup(tagGroup: string, source: string, target: string): Promise<boolean> {
     try {
       await exiftool.write(

@@ -11,6 +11,7 @@ import { EventRepository } from 'src/repositories/event.repository';
 import { LoggingRepository } from 'src/repositories/logging.repository';
 import { JobCounts, JobItem, JobOf } from 'src/types';
 import { getKeyByValue, getMethodNames, ImmichStartupError } from 'src/utils/misc';
+import { getDownloadVariantJobId } from 'src/utils/download-variant';
 
 type JobMapItem = {
   jobName: JobName;
@@ -276,6 +277,9 @@ export class JobRepository {
       }
       case JobName.DatabaseBackup: {
         return { deduplication: { id: JobName.DatabaseBackup } };
+      }
+      case JobName.DownloadVariantGenerate: {
+        return { jobId: getDownloadVariantJobId(item.data.output) };
       }
       default: {
         return null;
