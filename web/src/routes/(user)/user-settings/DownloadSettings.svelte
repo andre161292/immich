@@ -4,6 +4,7 @@
   import { SettingInputFieldType } from '$lib/constants';
   import { authManager } from '$lib/managers/auth-manager.svelte';
   import { ByteUnit, convertFromBytes, convertToBytes } from '$lib/utils/byte-units';
+  import { downloadVariantPreferences, isDownloadVariantsEnabled } from '$lib/utils/download-variants';
   import { handleError } from '$lib/utils/handle-error';
   import { updateMyPreferences } from '@immich/sdk';
   import { Button, toastManager } from '@immich/ui';
@@ -12,6 +13,7 @@
 
   let archiveSize = $state(convertFromBytes(authManager.preferences.download.archiveSize || 4, ByteUnit.GiB));
   let includeEmbeddedVideos = $state(authManager.preferences.download.includeEmbeddedVideos);
+  let askForVariant = $state(downloadVariantPreferences.current.ask);
 
   const handleSave = async () => {
     try {
@@ -25,6 +27,7 @@
       });
 
       authManager.setPreferences(response);
+      downloadVariantPreferences.current = { ...downloadVariantPreferences.current, ask: askForVariant };
 
       toastManager.primary($t('saved_settings'));
     } catch (error) {
@@ -52,6 +55,15 @@
           subtitle={$t('download_include_embedded_motion_videos_description')}
           bind:checked={includeEmbeddedVideos}
         ></SettingSwitch>
+        {#await isDownloadVariantsEnabled() then enabled}
+          {#if enabled}
+            <SettingSwitch
+              title={$t('download_ask_options')}
+              subtitle={$t('download_ask_options_description')}
+              bind:checked={askForVariant}
+            ></SettingSwitch>
+          {/if}
+        {/await}
         <div class="flex justify-end">
           <Button shape="round" type="submit" size="small" onclick={() => handleSave()}>{$t('save')}</Button>
         </div>
