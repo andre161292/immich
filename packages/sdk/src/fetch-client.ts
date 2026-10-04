@@ -65,6 +65,24 @@ export type AdminConfigDatabaseBackupDto = {
 export type AdminConfigBackupsDto = {
     database: AdminConfigDatabaseBackupDto;
 };
+export type AdminConfigDownloadVariantsDto = {
+    /** Days to keep converted files and download requests */
+    cacheDays: number;
+    /** Maximum size of the download cache in GiB */
+    cacheSizeGb: number;
+    /** Allow downloading converted variants */
+    enabled: boolean;
+    /** Quality of converted images */
+    imageQuality: number;
+    /** Maximum number of active requests per user or shared link visitor */
+    maxActiveRequests: number;
+    /** Maximum number of files per download request */
+    maxAssetsPerRequest: number;
+    /** Maximum number of videos to convert per download request */
+    maxVideosPerRequest: number;
+    /** Allow shared link visitors to request converted variants */
+    sharedLinks: boolean;
+};
 export type AdminConfigFFmpegRealtimeDto = {
     /** Enable real-time HLS transcoding (alpha) */
     enabled: boolean;
@@ -165,6 +183,7 @@ export type AdminConfigJobSettingsDto = {
 };
 export type AdminConfigJobDto = {
     backgroundTask: AdminConfigJobSettingsDto;
+    downloadVariant: AdminConfigJobSettingsDto;
     editor: AdminConfigJobSettingsDto;
     faceDetection: AdminConfigJobSettingsDto;
     integrityCheck: AdminConfigJobSettingsDto;
@@ -408,6 +427,7 @@ export type AdminConfigUserDto = {
 };
 export type AdminConfigDto = {
     backup: AdminConfigBackupsDto;
+    downloadVariants: AdminConfigDownloadVariantsDto;
     ffmpeg: AdminConfigFFmpegDto;
     image: AdminConfigImageDto;
     integrityChecks: AdminConfigIntegrityChecksDto;
@@ -1513,6 +1533,12 @@ export type ClusterGroupRequestCreateDto = {
     /** User to invite into the cluster group */
     userId: string;
 };
+export type UserConfigDownloadVariantsDto = {
+    /** Allow downloading converted variants */
+    enabled: boolean;
+    /** Allow shared link visitors to request converted variants */
+    sharedLinks: boolean;
+};
 export type UserConfigFFmpegRealtimeDto = {
     /** Enable real-time HLS transcoding (alpha) */
     enabled: boolean;
@@ -1610,6 +1636,7 @@ export type UserConfigUserDto = {
     deleteDelay: number;
 };
 export type UserConfigDto = {
+    downloadVariants: UserConfigDownloadVariantsDto;
     ffmpeg: UserConfigFFmpegDto;
     image: UserConfigImageDto;
     machineLearning: UserConfigMachineLearningDto;
@@ -1651,6 +1678,64 @@ export type DownloadResponseDto = {
     archives: DownloadArchiveInfo[];
     /** Total size in bytes */
     totalSize: number;
+};
+export type DownloadVariantDto = {
+    imageFormat: DownloadImageFormat;
+    imageSize: DownloadImageSize;
+    /** Copy EXIF metadata into converted files */
+    keepMetadata?: boolean;
+    videoCodec: DownloadVideoCodec;
+    videoResolution: DownloadVideoResolution;
+};
+export type DownloadRequestDto = {
+    /** Creation date */
+    createdAt: string;
+    /** Expiration date */
+    expiresAt: string;
+    /** Number of files that could not be converted */
+    failed: number;
+    /** Download request ID */
+    id: string;
+    /** Name of the download */
+    name: string;
+    /** Number of files ready to download */
+    ready: number;
+    /** Download the files individually instead of as an archive */
+    single: boolean;
+    /** Total size of the files that are ready, in bytes */
+    size: number;
+    status: DownloadRequestStatus;
+    /** Number of files */
+    total: number;
+    variant: DownloadVariantDto;
+};
+export type DownloadRequestCreateDto = {
+    /** Album ID to download */
+    albumId?: string;
+    /** Asset IDs to download */
+    assetIds?: string[];
+    /** Name of the download, used for the archive name */
+    name?: string;
+    /** Download the files individually instead of as an archive */
+    single?: boolean;
+    /** User ID to download assets from */
+    userId?: string;
+    variant: DownloadVariantDto;
+};
+export type DownloadRequestCreateResponseDto = {
+    /** Nothing needs to be generated, use the regular download endpoints */
+    immediate: boolean;
+    request?: DownloadRequestDto;
+};
+export type DownloadRequestArchiveDto = {
+    /** The name of the archive to download, without extension */
+    archiveName?: string;
+    /** Subset of asset IDs to include, defaults to all */
+    assetIds?: string[];
+};
+export type DownloadRequestInfoDto = {
+    /** Archive size limit in bytes */
+    archiveSize?: number;
 };
 export type DuplicateResponseDto = {
     /** Duplicate assets */
@@ -1742,6 +1827,7 @@ export type QueueResponseLegacyDto = {
 export type QueuesResponseLegacyDto = {
     backgroundTask: QueueResponseLegacyDto;
     backupDatabase: QueueResponseLegacyDto;
+    downloadVariant: QueueResponseLegacyDto;
     duplicateDetection: QueueResponseLegacyDto;
     editor: QueueResponseLegacyDto;
     faceDetection: QueueResponseLegacyDto;
@@ -2093,6 +2179,12 @@ export type PluginTemplateResponseDto = {
     /** Ui hints, for example "smart-album" */
     uiHints: string[];
 };
+export type PublicConfigDownloadVariantsDto = {
+    /** Allow downloading converted variants */
+    enabled: boolean;
+    /** Allow shared link visitors to request converted variants */
+    sharedLinks: boolean;
+};
 export type PublicConfigOAuthDto = {
     /** Auto launch */
     autoLaunch: boolean;
@@ -2114,6 +2206,7 @@ export type PublicConfigThemeDto = {
     customCss: string;
 };
 export type PublicConfigDto = {
+    downloadVariants: PublicConfigDownloadVariantsDto;
     oauth: PublicConfigOAuthDto;
     passwordLogin: PublicConfigPasswordLoginDto;
     server: PublicConfigServerDto;
@@ -5303,6 +5396,152 @@ export function getDownloadInfo({ key, slug, downloadInfoDto }: {
     })));
 }
 /**
+ * List download requests
+ */
+export function getDownloadRequests({ downloadToken, key, slug }: {
+    downloadToken?: string;
+    key?: string;
+    slug?: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: DownloadRequestDto[];
+    }>(`/download/requests${QS.query(QS.explode({
+        downloadToken,
+        key,
+        slug
+    }))}`, {
+        ...opts
+    }));
+}
+/**
+ * Create a download request
+ */
+export function createDownloadRequest({ downloadToken, key, slug, downloadRequestCreateDto }: {
+    downloadToken?: string;
+    key?: string;
+    slug?: string;
+    downloadRequestCreateDto: DownloadRequestCreateDto;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 201;
+        data: DownloadRequestCreateResponseDto;
+    }>(`/download/requests${QS.query(QS.explode({
+        downloadToken,
+        key,
+        slug
+    }))}`, oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: downloadRequestCreateDto
+    })));
+}
+/**
+ * Delete a download request
+ */
+export function deleteDownloadRequest({ downloadToken, id, key, slug }: {
+    downloadToken?: string;
+    id: string;
+    key?: string;
+    slug?: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText(`/download/requests/${encodeURIComponent(id)}${QS.query(QS.explode({
+        downloadToken,
+        key,
+        slug
+    }))}`, {
+        ...opts,
+        method: "DELETE"
+    }));
+}
+/**
+ * Retrieve a download request
+ */
+export function getDownloadRequest({ downloadToken, id, key, slug }: {
+    downloadToken?: string;
+    id: string;
+    key?: string;
+    slug?: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: DownloadRequestDto;
+    }>(`/download/requests/${encodeURIComponent(id)}${QS.query(QS.explode({
+        downloadToken,
+        key,
+        slug
+    }))}`, {
+        ...opts
+    }));
+}
+/**
+ * Download a download request archive
+ */
+export function downloadRequestArchive({ downloadToken, id, key, slug, downloadRequestArchiveDto }: {
+    downloadToken?: string;
+    id: string;
+    key?: string;
+    slug?: string;
+    downloadRequestArchiveDto: DownloadRequestArchiveDto;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchBlob<{
+        status: 200;
+        data: Blob;
+    }>(`/download/requests/${encodeURIComponent(id)}/archive${QS.query(QS.explode({
+        downloadToken,
+        key,
+        slug
+    }))}`, oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: downloadRequestArchiveDto
+    })));
+}
+/**
+ * Download a file of a download request
+ */
+export function downloadRequestFile({ assetId, downloadToken, id, key, slug }: {
+    assetId: string;
+    downloadToken?: string;
+    id: string;
+    key?: string;
+    slug?: string;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchBlob<{
+        status: 200;
+        data: Blob;
+    }>(`/download/requests/${encodeURIComponent(id)}/assets/${encodeURIComponent(assetId)}${QS.query(QS.explode({
+        downloadToken,
+        key,
+        slug
+    }))}`, {
+        ...opts
+    }));
+}
+/**
+ * Retrieve download request archive information
+ */
+export function getDownloadRequestInfo({ downloadToken, id, key, slug, downloadRequestInfoDto }: {
+    downloadToken?: string;
+    id: string;
+    key?: string;
+    slug?: string;
+    downloadRequestInfoDto: DownloadRequestInfoDto;
+}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 201;
+        data: DownloadResponseDto;
+    }>(`/download/requests/${encodeURIComponent(id)}/info${QS.query(QS.explode({
+        downloadToken,
+        key,
+        slug
+    }))}`, oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: downloadRequestInfoDto
+    })));
+}
+/**
  * Delete duplicates
  */
 export function deleteDuplicates({ bulkIdsDto }: {
@@ -8135,6 +8374,33 @@ export enum AssetMediaSize {
     Preview = "preview",
     Thumbnail = "thumbnail"
 }
+export enum DownloadRequestStatus {
+    Preparing = "preparing",
+    Ready = "ready",
+    Failed = "failed"
+}
+export enum DownloadImageFormat {
+    Original = "original",
+    Jpeg = "jpeg",
+    Webp = "webp"
+}
+export enum DownloadImageSize {
+    Original = "original",
+    $3840 = "3840",
+    $2560 = "2560",
+    $1920 = "1920"
+}
+export enum DownloadVideoCodec {
+    Original = "original",
+    H264 = "h264",
+    Hevc = "hevc"
+}
+export enum DownloadVideoResolution {
+    Original = "original",
+    $2160 = "2160",
+    $1080 = "1080",
+    $720 = "720"
+}
 export enum SourceType {
     MachineLearning = "machine-learning",
     Exif = "exif",
@@ -8176,7 +8442,8 @@ export enum QueueName {
     Ocr = "ocr",
     Workflow = "workflow",
     IntegrityCheck = "integrityCheck",
-    Editor = "editor"
+    Editor = "editor",
+    DownloadVariant = "downloadVariant"
 }
 export enum QueueCommand {
     Start = "start",
@@ -8279,7 +8546,9 @@ export enum JobName {
     IntegrityChecksumFiles = "IntegrityChecksumFiles",
     IntegrityChecksumFilesRefresh = "IntegrityChecksumFilesRefresh",
     IntegrityDeleteReportType = "IntegrityDeleteReportType",
-    IntegrityDeleteReports = "IntegrityDeleteReports"
+    IntegrityDeleteReports = "IntegrityDeleteReports",
+    DownloadVariantGenerate = "DownloadVariantGenerate",
+    DownloadCacheCleanup = "DownloadCacheCleanup"
 }
 export enum SearchOrderField {
     FileCreatedAt = "fileCreatedAt",
