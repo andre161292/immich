@@ -1,5 +1,8 @@
 <script lang="ts">
+  import DownloadRequestList from '$lib/components/DownloadRequestList.svelte';
+  import { authManager } from '$lib/managers/auth-manager.svelte';
   import { type DownloadState, downloadManager } from '$lib/managers/download-manager.svelte';
+  import { downloadRequestManager } from '$lib/managers/download-request-manager.svelte';
   import { locale } from '$lib/stores/preferences.store';
   import { CloseButton, Heading, IconButton } from '@immich/ui';
   import { mdiReload, mdiDownload } from '@mdi/js';
@@ -15,10 +18,17 @@
 
   const closePanel = () => {
     downloadManager.clearAll();
+    downloadRequestManager.dismiss();
   };
+
+  $effect(() => {
+    // reload the downloads that are being prepared whenever the user or shared link changes
+    void [authManager.authenticated, authManager.params];
+    void downloadRequestManager.load();
+  });
 </script>
 
-{#if downloadManager.isDownloading}
+{#if downloadManager.isDownloading || downloadRequestManager.isVisible}
   <div
     transition:fly={{ x: -100, duration: 350 }}
     class="fixed inset-s-2 bottom-10 z-60 max-h-67.5 w-89 rounded-2xl border bg-subtle p-4 shadow-lg dark:border-white/10"
@@ -28,6 +38,9 @@
       <CloseButton class="w-8" size="small" onclick={closePanel} />
     </div>
     <div class="my-2 mb-2 flex max-h-50 flex-col overflow-y-auto text-sm">
+      {#if downloadRequestManager.isVisible}
+        <DownloadRequestList />
+      {/if}
       {#each downloadManager.assets as [downloadKey, download] (downloadKey)}
         <div class="mb-2 flex place-items-center gap-2" transition:slide>
           <div class="min-w-0 grow">

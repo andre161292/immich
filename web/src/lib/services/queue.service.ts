@@ -13,6 +13,7 @@ import {
   mdiCog,
   mdiContentDuplicate,
   mdiDatabaseOutline,
+  mdiDownload,
   mdiFaceRecognition,
   mdiFileCheckOutline,
   mdiFileJpgBox,
@@ -249,6 +250,10 @@ export const asQueueItem = ($t: MessageFormatter, queue: { name: QueueName }): Q
     [QueueName.Editor]: {
       icon: mdiPencil,
       title: $t('editor'),
+    },
+    [QueueName.DownloadVariant]: {
+      icon: mdiDownload,
+      title: $t('download_variants'),
     },
   };
 

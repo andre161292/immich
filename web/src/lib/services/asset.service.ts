@@ -57,6 +57,7 @@ import { Route } from '$lib/route';
 import { SlideshowState, slideshowStore } from '$lib/stores/slideshow.store';
 import { getAssetMediaUrl, getSharedLink, sleep } from '$lib/utils';
 import { downloadUrl } from '$lib/utils';
+import { handleDownloadVariant } from '$lib/utils/download-variants';
 import { handleError } from '$lib/utils/handle-error';
 import { getFormatter } from '$lib/utils/i18n';
 
@@ -391,6 +392,19 @@ export const getAssetActions = (
 };
 
 export const handleDownloadAsset = async (asset: AssetResponseDto, { edited }: { edited: boolean }) => {
+  if (
+    edited &&
+    (await handleDownloadVariant({
+      assetIds: [asset.id],
+      name: asset.originalFileName,
+      single: true,
+      hasImages: asset.type === AssetTypeEnum.Image,
+      hasVideos: asset.type === AssetTypeEnum.Video || !!asset.livePhotoVideoId,
+    }))
+  ) {
+    return;
+  }
+
   const $t = await getFormatter();
 
   const assets = [
